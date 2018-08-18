@@ -617,7 +617,9 @@ outer:
 			levprd[nprod] |= ACTFLAG
 			fmt.Fprintf(fcode, "\n\tcase %v:", nprod)
 			fmt.Fprintf(fcode, "\n\t\t%sDollar = %sS[%spt-%v:%spt+1]", prefix, prefix, prefix, mem-1, prefix)
+			fmt.Fprintf(fcode, "\n\t\t%sLocal := %sVAL.%s()", prefix, prefix, typeset[fdtype(curprod[0])])
 			cpyact(curprod, mem)
+			fmt.Fprintf(fcode, "\n\t\t%sVAL.val = %sLocal", prefix, prefix)
 
 			// action within rule...
 			t = gettok()
@@ -1346,15 +1348,7 @@ loop:
 				c = getrune(finput)
 			}
 			if c == '$' {
-				fmt.Fprintf(fcode, "%sVAL", prefix)
-
-				// put out the proper tag...
-				if ntypes != 0 {
-					if tok < 0 {
-						tok = fdtype(curprod[0])
-					}
-					fmt.Fprintf(fcode, ".val")
-				}
+				fmt.Fprintf(fcode, "%sLocal", prefix)
 				continue loop
 			}
 			if c == '-' {

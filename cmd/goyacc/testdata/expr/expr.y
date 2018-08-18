@@ -30,7 +30,7 @@ import (
 	num *big.Rat
 }
 
-%type	<num>	expr expr1 expr2 expr3
+%type	<num>	top expr expr1 expr2 expr3
 
 %token '+' '-' '*' '/' '(' ')'
 
