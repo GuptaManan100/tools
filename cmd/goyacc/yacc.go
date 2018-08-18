@@ -1057,8 +1057,6 @@ const (
 	readingType
 )
 
-var memToType = make(map[string]string)
-
 //
 // copy the union declaration to the output, and the define file if present
 //
@@ -1084,7 +1082,6 @@ func cpyunion() {
 		case '\n':
 			lineno++
 			if state == readingType {
-				memToType[member] = typ
 				fmt.Fprintf(ftable, "\nfunc (st *%sSymType) %s() %s {\n", prefix, member, typ)
 				fmt.Fprintf(ftable, "\tv, _ := st.val.(%s)\n", typ)
 				fmt.Fprintf(ftable, "\treturn v\n")
