@@ -1047,6 +1047,16 @@ func chfind(t int, s string) int {
 	return defin(t, s)
 }
 
+const (
+	startUnion = iota
+	skippingLeadingBlanks
+	readingMember
+	skippingLaterBlanks
+	readingType
+)
+
+var memToType = make(map[string]string)
+
 //
 // copy the union declaration to the output, and the define file if present
 //
@@ -1055,33 +1065,60 @@ func cpyunion() {
 	if !lflag {
 		fmt.Fprintf(ftable, "\n//line %v:%v\n", infile, lineno)
 	}
-	fmt.Fprintf(ftable, "type %sSymType struct", prefix)
+	fmt.Fprintf(ftable, "type %sSymType struct {", prefix)
+	fmt.Fprintf(ftable, "\n\tyys int")
+	fmt.Fprintf(ftable, "\n\tval interface{}")
+	fmt.Fprintf(ftable, "\n}\n\n")
 
-	level := 0
+	state := startUnion
+	var member, typ string
 
-out:
 	for {
 		c := getrune(finput)
 		if c == EOF {
 			errorf("EOF encountered while processing %%union")
 		}
-		ftable.WriteRune(c)
 		switch c {
 		case '\n':
 			lineno++
-		case '{':
-			if level == 0 {
-				fmt.Fprintf(ftable, "\n\tyys int")
+			if state == readingType {
+				memToType[member] = typ
+				fmt.Fprintf(ftable, "\nfunc (st *%sSymType) %s() %s {\n", prefix, member, typ)
+				fmt.Fprintf(ftable, "\tv, _ := st.val.(%s)\n", typ)
+				fmt.Fprintf(ftable, "\treturn v\n")
+				fmt.Fprintf(ftable, "}\n")
+				member = ""
+				typ = ""
 			}
-			level++
-		case '}':
-			level--
-			if level == 0 {
-				break out
+			state = skippingLeadingBlanks
+		default:
+			switch state {
+			case skippingLeadingBlanks:
+				if c == ' ' || c == '\t' {
+					continue
+				}
+				if c == '}' {
+					return
+				}
+				state = readingMember
+				member += string(c)
+			case readingMember:
+				if c == ' ' || c == '\t' {
+					state = skippingLaterBlanks
+					continue
+				}
+				member += string(c)
+			case skippingLaterBlanks:
+				if c == ' ' || c == '\t' {
+					continue
+				}
+				state = readingType
+				typ += string(c)
+			case readingType:
+				typ += string(c)
 			}
 		}
 	}
-	fmt.Fprintf(ftable, "\n\n")
 }
 
 //
@@ -1316,7 +1353,7 @@ loop:
 					if tok < 0 {
 						tok = fdtype(curprod[0])
 					}
-					fmt.Fprintf(fcode, ".%v", typeset[tok])
+					fmt.Fprintf(fcode, ".val")
 				}
 				continue loop
 			}
@@ -1380,7 +1417,7 @@ loop:
 				if tok < 0 {
 					tok = fdtype(curprod[j])
 				}
-				fmt.Fprintf(fcode, ".%v", typeset[tok])
+				fmt.Fprintf(fcode, ".%v()", typeset[tok])
 			}
 			continue loop
 

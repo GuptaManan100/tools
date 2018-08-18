@@ -150,12 +150,13 @@ func (x *exprLex) num(c rune, yylval *exprSymType) int {
 	if c != eof {
 		x.peek = c
 	}
-	yylval.num = &big.Rat{}
-	_, ok := yylval.num.SetString(b.String())
+	rnum := &big.Rat{}
+	_, ok := rnum.SetString(b.String())
 	if !ok {
 		log.Printf("bad number %q", b.String())
 		return eof
 	}
+	yylval.val = rnum
 	return NUM
 }
 
