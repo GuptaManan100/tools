@@ -617,9 +617,14 @@ outer:
 			levprd[nprod] |= ACTFLAG
 			fmt.Fprintf(fcode, "\n\tcase %v:", nprod)
 			fmt.Fprintf(fcode, "\n\t\t%sDollar = %sS[%spt-%v:%spt+1]", prefix, prefix, prefix, mem-1, prefix)
-			fmt.Fprintf(fcode, "\n\t\t%sLocal := %sVAL.%s()", prefix, prefix, typeset[fdtype(curprod[0])])
+			v,_ := fdtype(curprod[0])
+			if v > 0 {
+				fmt.Fprintf(fcode, "\n\t\t%sLocal := %sVAL.%s()", prefix, prefix, typeset[v])
+			}
 			cpyact(curprod, mem)
-			fmt.Fprintf(fcode, "\n\t\t%sVAL.val = %sLocal", prefix, prefix)
+			if v > 0 {
+				fmt.Fprintf(fcode, "\n\t\t%sVAL.val = %sLocal", prefix, prefix)
+			}
 
 			// action within rule...
 			t = gettok()
@@ -1011,7 +1016,7 @@ func getword(c rune) {
 //
 // determine the type of a symbol
 //
-func fdtype(t int) int {
+func fdtype(t int) (int, string) {
 	var v int
 	var s string
 
@@ -1022,10 +1027,7 @@ func fdtype(t int) int {
 		v = TYPE(toklev[t])
 		s = tokset[t].name
 	}
-	if v <= 0 {
-		errorf("must specify type for %v", s)
-	}
-	return v
+	return v,s
 }
 
 func chfind(t int, s string) int {
@@ -1334,6 +1336,8 @@ loop:
 		case '$':
 			s := 1
 			tok := -1
+			str := ""
+			v := 0
 			c = getrune(finput)
 
 			// type description
@@ -1346,6 +1350,10 @@ loop:
 				c = getrune(finput)
 			}
 			if c == '$' {
+				v,str = fdtype(curprod[0])
+				if v < 0 {
+					errorf("must specify type for %v", str)
+				}
 				fmt.Fprintf(fcode, "%sLocal", prefix)
 				continue loop
 			}
@@ -1407,7 +1415,10 @@ loop:
 					errorf("must specify type of $%v", j)
 				}
 				if tok < 0 {
-					tok = fdtype(curprod[j])
+					tok,str = fdtype(curprod[j])
+					if tok <= 0 {
+						errorf("must specify type for %v",str)
+					}
 				}
 				fmt.Fprintf(fcode, ".%v()", typeset[tok])
 			}
